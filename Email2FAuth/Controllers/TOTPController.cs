@@ -6,7 +6,7 @@ using System.Data.SqlClient;
 using Email2FAuth;
 using Email2FAuth.Models;
 
-namespace TotpDemo.Controllers
+namespace Email2FAuth.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -14,11 +14,13 @@ namespace TotpDemo.Controllers
     {
         private readonly IConfiguration _config;
         private readonly SqlConnection _connection;
+        private readonly TotpService _totpService;
 
-        public TOTPController(IConfiguration config)
+        public TOTPController(IConfiguration config, TotpService totpService)
         {
             _config = config;
             _connection = new SqlConnection(_config.GetConnectionString("Default"));
+            _totpService = totpService;
         }
 
         /// <summary>
@@ -29,7 +31,7 @@ namespace TotpDemo.Controllers
         {
             try
             {
-                if (new TotpService().ValidateTOTP(model.Secret, model.Code))
+                if (_totpService.ValidateTOTP(model.Secret, model.Code))
                 {
                     var sql = $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
                               "UPDATE Users SET AuthSecret = @Secret, IsAuthEnabled = 1 WHERE Username = @Username";
@@ -56,7 +58,8 @@ namespace TotpDemo.Controllers
                 "SELECT AuthSecret FROM Users WHERE Username = @Username",
                 new { Username = model.Username });
 
-            if (new TotpService().ValidateTOTP(secret, model.Code))
+
+            if (_totpService.ValidateTOTP(secret, model.Code))
             {
                 return Ok();
             }

@@ -7,7 +7,7 @@ using Email2FAuth;
 using System.Reflection;
 using Email2FAuth.Services;
 
-namespace TotpDemo.Controllers
+namespace Email2FAuth.Controllers
 {
     [ApiController]
     [Route("api")]
@@ -18,9 +18,8 @@ namespace TotpDemo.Controllers
         private readonly PasswordService _passwordService;
         private readonly TotpService _totpService;
         private readonly IEmailSender _emailSender;
-        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AuthController(IConfiguration config, PasswordService PasswordService, TotpService totpService, IEmailSender sender, IHttpContextAccessor context)
+        public AuthController(IConfiguration config, PasswordService PasswordService, TotpService totpService, IEmailSender sender)
         {
             _config = config;
             _connection = new SqlConnection(_config.GetConnectionString("Default"));
@@ -28,22 +27,12 @@ namespace TotpDemo.Controllers
             _passwordService = PasswordService;
             _totpService = totpService;
             _emailSender = sender;
-            _httpContextAccessor = context;
         }
 
         public record SendUserData
         {
             public string Id { get; set; }
             public string Email { get; set; }
-        }
-
-        public string GetBaseUrl()
-        {
-            var request = _httpContextAccessor.HttpContext.Request;
-            var host = request.Host.ToUriComponent();
-            var pathBase = request.PathBase.ToUriComponent();
-
-            return $"{request.Scheme}://{host}{pathBase}";
         }
 
         [HttpPost("login")]
@@ -57,9 +46,10 @@ namespace TotpDemo.Controllers
 
             if (user?.Id != null)
             {
-                //var secret = RetrieveStoredSecterForUser(model.Username);
-                //var otp = _totpService.GenerateTOTP(secret);
-                //_emailSender.SendEmailAsync(user.Email, otp, user.Id, GetBaseUrl());
+                var secret = RetrieveStoredSecterForUser(model.Username);
+                var otp = _totpService.GenerateTOTP(secret);
+                //_emailSender.SendEmailAsync(user.Email, otp, user.Id);
+                Console.WriteLine(otp);
                 return Ok();
             }
 

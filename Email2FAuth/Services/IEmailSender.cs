@@ -2,6 +2,6 @@
 {
     public interface IEmailSender
     {
-        Task SendEmailAsync(string toEmail, string otp, string username, string baseUrl);
+        Task SendEmailAsync(string toEmail, string otp, string username);
     }
 }

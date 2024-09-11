@@ -15,10 +15,11 @@ namespace Email2FAuth.Services
             _logger = logger;
         }
 
-        public async Task SendEmailAsync(string toEmail, string otp, string userId, string baseUrl)
+        public async Task SendEmailAsync(string toEmail, string otp, string userId)
         {
             var subject = "Your 2FA Code";
             var sendGridKey = _configuration["SendGridKey"];
+            var baseUrl = _configuration["ExternalUri"];
             var url = $"{baseUrl}verify?otp={otp}&userId={userId}";
             ArgumentNullException.ThrowIfNull(sendGridKey, nameof(sendGridKey));
             var message = $@"
@@ -48,6 +49,7 @@ namespace Email2FAuth.Services
             msg.SetClickTracking(false, false);
 
             var response = await client.SendEmailAsync(msg);
+            var responseBody = await response.DeserializeResponseBodyAsync();
             _logger.LogInformation(response.IsSuccessStatusCode
                                    ? $"Email to {toEmail} queued successfully!"
                                    : $"Failure Email to {toEmail}");

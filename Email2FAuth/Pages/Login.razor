@@ -55,17 +55,8 @@
         var response = await _http.PostAsJsonAsync("/api/login", new { user.Username, user.Password });
         if (response.IsSuccessStatusCode)
         {
-            await CheckIfTOTPEnabled();
             await SaveUserNameAsync(user.Username);
-            if (IsAuthEnabled)
-            {
-                Navigation.NavigateTo("/confirm-totp");
-            }
-            else
-            {
-                
-                //Navigation.NavigateTo("/totp-setup");
-            }
+            Navigation.NavigateTo("/verify");
         }
         else
         {
@@ -84,18 +75,18 @@
         }
     }
 
-    private async Task CheckIfTOTPEnabled()
-    {
-        var response = await _http.GetAsync($"api/totp/is-enabled?username={Uri.EscapeDataString(user.Username)}");
-        if (response.IsSuccessStatusCode)
-        {
-            IsAuthEnabled = true;
-        }
-        else
-        {
-            IsAuthEnabled = false;
-        }
-    }
+    // private async Task CheckIfTOTPEnabled()
+    // {
+    //     var response = await _http.GetAsync($"api/totp/is-enabled?username={Uri.EscapeDataString(user.Username)}");
+    //     if (response.IsSuccessStatusCode)
+    //     {
+    //         IsAuthEnabled = true;
+    //     }
+    //     else
+    //     {
+    //         IsAuthEnabled = false;
+    //     }
+    // }
 
     private void NavigateToRegister()
     {

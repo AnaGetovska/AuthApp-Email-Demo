@@ -28,7 +28,7 @@ namespace Email2FAuth
 
         public bool ValidateTOTP(string secret, string code)
         {
-            var totp = new Totp(Base32Encoding.ToBytes(secret));
+            var totp = new Totp(Base32Encoding.ToBytes(secret), step: 300);
             return totp.VerifyTotp(code, out _, VerificationWindow.RfcSpecifiedNetworkDelay);
         }
     }
