@@ -14,9 +14,6 @@ namespace Email2FAuth.Services
             _staticSalt = _configuration["Salt"] ?? throw new InvalidOperationException("Salt not found in configuration");
         }
 
-        /// <summary>
-        /// Hashes the entered passwprd with the static salt.
-        /// </summary>
         public string HashPassword(string password)
         {
             var saltedPassword = password + _staticSalt;

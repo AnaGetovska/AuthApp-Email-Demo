@@ -57,7 +57,7 @@ namespace Email2FAuth.Utils
                     PasswordHash NVARCHAR(255) NOT NULL,
                     AuthSecret NVARCHAR(255) NULL,
                     Email NVARCHAR(255) NOT NULL,
-                    IsAuthEnabled BIT NOT NULL DEFAULT 0,
+                    IsAuthVerified BIT NOT NULL DEFAULT 0,
                     DateCreated DATETIME NOT NULL DEFAULT GETDATE(),
                     LastLogin DATETIME NULL
                 )";

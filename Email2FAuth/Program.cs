@@ -1,17 +1,12 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using System.Net.NetworkInformation;
 using Email2FAuth;
-using Email2FAuth.Data;
-using Email2FAuth.Utils;
 using Email2FAuth.Services;
+using Email2FAuth.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddSingleton<DatabaseSeeder>();
 builder.Services.AddSingleton<TotpService>();
 builder.Services.AddSingleton<PasswordService>();

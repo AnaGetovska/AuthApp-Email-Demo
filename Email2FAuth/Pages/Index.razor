@@ -29,11 +29,9 @@
         if (firstRender)
         {
             currentUser = await GetUserNameAsync();
-            await CheckIfAuthEnabled();
-
             StateHasChanged();
         }
-        if (currentUser == null || IsAuthEnabled == false)
+        if (currentUser == null)
         {
             RedirectToLogn();
         }
@@ -59,17 +57,5 @@
         await RemoveUserAsync();
         RedirectToLogn();
     }
-
-    private async Task CheckIfAuthEnabled()
-    {
-        var response = await _http.GetAsync($"api/totp/is-enabled?username={Uri.EscapeDataString(currentUser ?? "")}");
-        if (response.IsSuccessStatusCode)
-        {
-            IsAuthEnabled = true;
-        }
-        else
-        {
-            IsAuthEnabled = false;
-        }
-    }
+     
 }

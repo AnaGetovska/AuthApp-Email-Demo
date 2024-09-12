@@ -1,9 +1,8 @@
-﻿@page "/verify"
-@page "/verify/{OtpCode}"
+﻿@page "/verify/{username}"
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
-@if (string.IsNullOrEmpty(OtpCode) && !isLoading)
+@if (!string.IsNullOrEmpty(Username) && !isLoading)
 {
     <div class="auth-form mt-5 alert alert-info">
         <h4 class="mb-4 text-center">Email verification:</h4>
@@ -11,7 +10,7 @@
         <p>To sign in, you will need to enter a 6-digit code send to your Email.</p>
         <div class="flex-column justify-content-start align-items-start">
             <div class="mt-3">
-                <input @bind="OtpCode" class="form-control" placeholder="Enter the 6-digit code" />
+                    <input @bind="totpCode" class="form-control" placeholder="Enter the 6-digit code" />
             </div>
             <div class="mt-4">
                 <button @onclick="ConfirmTOTP" class="btn btn-primary">Confirm Authentication Code</button>
@@ -19,13 +18,7 @@
         </div>
     </div>
 }
-else
-{
-    if (!isLoading)
-    {
-        ConfirmTOTP();
-    }
-}
+
 @if (hasFeedback)
 {
     <div class="alert-box @alertType">
@@ -35,8 +28,6 @@ else
 
 @code {
     private string totpCode = "";
-    private string currentUser = "";
-    private bool IsAuthEnabled;
     private HttpClient _http;
     private string alertType = "";
     private string alertMessage = "";
@@ -44,7 +35,7 @@ else
     private bool isLoading;
 
     [Parameter]
-    public string OtpCode { get; set; }
+    public string Username { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,15 +45,6 @@ else
             };
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            currentUser = await GetUserNameAsync();
-        }
-        StateHasChanged();
-    }
-
     private async Task ConfirmTOTP()
     {
         if (isLoading)
@@ -70,9 +52,11 @@ else
             return;
         }
         isLoading = true;
-        var response = await _http.PostAsJsonAsync("api/totp/confirm", new { Username = currentUser, Code = OtpCode });
+        var response = await _http.PostAsJsonAsync("api/totp/confirm", new { Username = Username, Code = totpCode });
         if (response.IsSuccessStatusCode)
         {
+            await SaveUserNameAsync(Username);
+
             Navigation.NavigateTo("/");
         }
         else
@@ -83,8 +67,8 @@ else
         }
     }
 
-    private async Task<string> GetUserNameAsync()
+    private async Task SaveUserNameAsync(string username)
     {
-        return await JSRuntime.InvokeAsync<string>("localStorage.getItem", "username");
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "username", username);
     }
 }

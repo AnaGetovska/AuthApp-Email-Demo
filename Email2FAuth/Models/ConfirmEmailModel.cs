@@ -1,6 +1,6 @@
 ﻿namespace Email2FAuth.Models
 {
-    public class ConfirmEmailModel
+    public record ConfirmEmailModel
     {
         public string Username { get; set; }
         public string Code { get; set; }

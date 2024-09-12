@@ -13,13 +13,11 @@ namespace Email2FAuth.Controllers
     public class TOTPController : ControllerBase
     {
         private readonly IConfiguration _config;
-        private readonly SqlConnection _connection;
         private readonly TotpService _totpService;
 
         public TOTPController(IConfiguration config, TotpService totpService)
         {
             _config = config;
-            _connection = new SqlConnection(_config.GetConnectionString("Default"));
             _totpService = totpService;
         }
 
@@ -29,22 +27,25 @@ namespace Email2FAuth.Controllers
         [HttpPost("setup")]
         public IActionResult SetupTOTP([FromBody] SetupTOTPModel model)
         {
-            try
+            using (var connection = new SqlConnection(_config.GetConnectionString("Default")))
             {
-                if (_totpService.ValidateTOTP(model.Secret, model.Code))
+                try
                 {
-                    var sql = $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
-                              "UPDATE Users SET AuthSecret = @Secret, IsAuthEnabled = 1 WHERE Username = @Username";
-                    _connection.Execute(sql, new { Username = model.Username, model.Secret });
-                    return Ok();
+                    if (_totpService.ValidateTOTP(model.Secret, model.Code))
+                    {
+                        var sql = $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
+                                  "UPDATE Users SET AuthSecret = @Secret, IsAuthEnabled = 1 WHERE Username = @Username";
+                        connection.Execute(sql, new { Username = model.Username, model.Secret });
+                        return Ok();
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
 
-            return BadRequest("Invalid Code for authentication. Please, try again.");
+                return BadRequest("Invalid Code for authentication. Please, try again.");
+            }
         }
 
         /// <summary>
@@ -53,34 +54,40 @@ namespace Email2FAuth.Controllers
         [HttpPost("confirm")]
         public IActionResult ConfirmTOTP([FromBody] ConfirmTOTPModel model)
         {
-            var secret = _connection.QuerySingle<string>(
-                $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
-                "SELECT AuthSecret FROM Users WHERE Username = @Username",
-                new { Username = model.Username });
-
-
-            if (_totpService.ValidateTOTP(secret, model.Code))
+            using (var connection = new SqlConnection(_config.GetConnectionString("Default")))
             {
-                return Ok();
-            }
+                var secret = connection.QuerySingle<string>(
+                    $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
+                    "SELECT AuthSecret FROM Users WHERE Username = @Username",
+                    new { Username = model.Username });
 
-            return BadRequest("Invalid TOTP code.");
+
+                if (_totpService.ValidateTOTP(secret, model.Code))
+                {
+                    return Ok();
+                }
+
+                return BadRequest("Invalid TOTP code.");
+            }
         }
 
         [HttpGet("is-enabled")]
         public IActionResult CheckIfAuthEnabled([FromQuery] string username)
         {
-            var isEnabled = _connection.QuerySingle<bool>(
-                $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
-                "SELECT IsAuthEnabled FROM Users WHERE Username = @Username",
-                new { username });
-
-            if (isEnabled)
+            using (var connection = new SqlConnection(_config.GetConnectionString("Default")))
             {
-                return Ok(new { Message = "Email authentication is enabled for the user." });
-            }
+                var isEnabled = connection.QuerySingle<bool>(
+                    $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
+                    "SELECT IsAuthEnabled FROM Users WHERE Username = @Username",
+                    new { username });
 
-            return BadRequest(new { Error = "User has not enabled Email authentication." });
+                if (isEnabled)
+                {
+                    return Ok(new { Message = "Email authentication is enabled for the user." });
+                }
+
+                return BadRequest(new { Error = "User has not enabled Email authentication." });
+            }
         }
     }
 }

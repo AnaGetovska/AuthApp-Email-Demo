@@ -1,6 +1,6 @@
 ﻿namespace Email2FAuth.Models
 {
-    public class LoginModel
+    public record LoginModel
     {
         public string Username { get; set; }
         public string Password { get; set; }

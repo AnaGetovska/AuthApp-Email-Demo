@@ -13,7 +13,6 @@ namespace Email2FAuth.Controllers
     [Route("api")]
     public class AuthController : ControllerBase
     {
-        private readonly SqlConnection _connection;
         private readonly IConfiguration _config;
         private readonly PasswordService _passwordService;
         private readonly TotpService _totpService;
@@ -22,17 +21,9 @@ namespace Email2FAuth.Controllers
         public AuthController(IConfiguration config, PasswordService PasswordService, TotpService totpService, IEmailSender sender)
         {
             _config = config;
-            _connection = new SqlConnection(_config.GetConnectionString("Default"));
-
             _passwordService = PasswordService;
             _totpService = totpService;
             _emailSender = sender;
-        }
-
-        public record SendUserData
-        {
-            public string Id { get; set; }
-            public string Email { get; set; }
         }
 
         [HttpPost("login")]
@@ -41,19 +32,22 @@ namespace Email2FAuth.Controllers
             // Validate username and password logic here...
             var hashedPass = _passwordService.HashPassword(model.Password);
             var sql = $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
-                      "SELECT Id, Email FROM Users WHERE Username = @Username AND PasswordHash = @PasswordHash";
-            var user = _connection.QuerySingleOrDefault<SendUserData>(sql, new { Username = model.Username, PasswordHash = hashedPass });
-
-            if (user?.Id != null)
+                      "SELECT Email FROM Users WHERE Username = @Username AND PasswordHash = @PasswordHash";
+            using (var connection = new SqlConnection(_config.GetConnectionString("Default")))
             {
-                var secret = RetrieveStoredSecterForUser(model.Username);
-                var otp = _totpService.GenerateTOTP(secret);
-                //_emailSender.SendEmailAsync(user.Email, otp, user.Id);
-                Console.WriteLine(otp);
-                return Ok();
-            }
+                var email = connection.QuerySingleOrDefault<string>(sql, new { Username = model.Username, PasswordHash = hashedPass });
 
-            return StatusCode(500);
+                if (email != null)
+                {
+                    var secret = _totpService.RetrieveStoredSecterForUser(model.Username);
+                    var otp = _totpService.GenerateTOTP(secret);
+                    _emailSender.SendEmailAsync(email, otp, model.Username);
+                    //Console.WriteLine(otp);
+                    return Ok();
+                }
+
+                return StatusCode(500);
+            }
         }
 
         [HttpPost("register")]
@@ -89,7 +83,7 @@ namespace Email2FAuth.Controllers
         public IActionResult Verify(string otp, string userId)
         {
             // Retrieve the correct OTP from wherever it is stored (e.g., session, database)
-            var validOtp = RetrieveStoredSecterForUser(userId);
+            var validOtp = _totpService.RetrieveStoredSecterForUser(userId);
 
             if (validOtp == otp)
             {
@@ -101,14 +95,6 @@ namespace Email2FAuth.Controllers
                 // OTP is invalid
                 return BadRequest("Invalid OTP");
             }
-        }
-
-        private string RetrieveStoredSecterForUser(string username)
-        {
-            return _connection.QuerySingle<string>(
-                $"USE {_config.GetRequiredSection("DB:Name").Value}; " +
-                "SELECT AuthSecret FROM Users WHERE Username = @Username",
-                new { Username = username });
         }
     }
 }

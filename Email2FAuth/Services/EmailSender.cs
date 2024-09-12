@@ -1,6 +1,5 @@
 ﻿using SendGrid;
 using SendGrid.Helpers.Mail;
-using static QRCoder.PayloadGenerator;
 
 namespace Email2FAuth.Services
 {
@@ -15,18 +14,23 @@ namespace Email2FAuth.Services
             _logger = logger;
         }
 
-        public async Task SendEmailAsync(string toEmail, string otp, string userId)
+        public async Task SendEmailAsync(string toEmail, string otp, string username)
         {
             var subject = "Your 2FA Code";
             var sendGridKey = _configuration["SendGridKey"];
             var baseUrl = _configuration["ExternalUri"];
-            var url = $"{baseUrl}verify?otp={otp}&userId={userId}";
+            var url = $"{baseUrl}verify?username={username}&otp={otp}";
             ArgumentNullException.ThrowIfNull(sendGridKey, nameof(sendGridKey));
             var message = $@"
-            <p>Your one-time password (OTP) is: <strong>{otp}</strong></p>
-            <p>Please click the button below to verify your login:</p>
-            <a href='{url}' style='background-color: #4CAF50; color: white;
-            padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block;'>Verify Login</a>";
+            <p>Your one-time password (OTP) is: <strong>{otp}</strong></p>";
+
+            //TODO: Redirect user with button
+            //var message = $@"
+            //<p>Your one-time password (OTP) is: <strong>{otp}</strong></p>
+            //<p>Please click the button below to verify your login:</p>
+            //<a href='{url}' style='background-color: #4CAF50; color: white;
+            //padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block;'>Verify Login</a>";
+
             await Execute(sendGridKey, subject, message, toEmail);
         }
 
@@ -51,8 +55,8 @@ namespace Email2FAuth.Services
             var response = await client.SendEmailAsync(msg);
             var responseBody = await response.DeserializeResponseBodyAsync();
             _logger.LogInformation(response.IsSuccessStatusCode
-                                   ? $"Email to {toEmail} queued successfully!"
-                                   : $"Failure Email to {toEmail}");
+                ? $"Email to {toEmail} queued successfully!"
+                : $"Failure Email to {toEmail}");
         }
     }
 }
