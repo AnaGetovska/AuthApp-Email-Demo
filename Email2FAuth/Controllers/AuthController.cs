@@ -1,11 +1,8 @@
 ﻿using Dapper;
-using Microsoft.AspNetCore.Http;
+using Email2FAuth.Models;
+using Email2FAuth.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Data.SqlClient;
-using Email2FAuth.Models;
-using Email2FAuth;
-using System.Reflection;
-using Email2FAuth.Services;
 
 namespace Email2FAuth.Controllers
 {
@@ -27,7 +24,7 @@ namespace Email2FAuth.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginModel model)
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
             // Validate username and password logic here...
             var hashedPass = _passwordService.HashPassword(model.Password);
@@ -41,7 +38,7 @@ namespace Email2FAuth.Controllers
                 {
                     var secret = _totpService.RetrieveStoredSecterForUser(model.Username);
                     var otp = _totpService.GenerateTOTP(secret);
-                    _emailSender.SendEmailAsync(email, otp, model.Username);
+                    await _emailSender.SendEmailAsync(email, otp, model.Username);
                     //Console.WriteLine(otp);
                     return Ok();
                 }
@@ -51,7 +48,7 @@ namespace Email2FAuth.Controllers
         }
 
         [HttpPost("register")]
-        public IActionResult Register([FromBody] UserRegisterModel model)
+        public async Task<IActionResult> Register([FromBody] UserRegisterModel model)
         {
             var hashedPass = _passwordService.HashPassword(model.Password);
             var sql = $"USE {_config.GetRequiredSection("DB:Name").Value};" + "INSERT INTO Users (Username, PasswordHash, Email, AuthSecret) VALUES (@Username, @PasswordHash, @Email, @AuthSecret)";
@@ -80,7 +77,7 @@ namespace Email2FAuth.Controllers
         }
 
         [HttpGet("verify")]
-        public IActionResult Verify(string otp, string userId)
+        public async Task<IActionResult> Verify(string otp, string userId)
         {
             // Retrieve the correct OTP from wherever it is stored (e.g., session, database)
             var validOtp = _totpService.RetrieveStoredSecterForUser(userId);
